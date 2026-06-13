@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useSignIn, useSignUp } from "@clerk/tanstack-react-start";
 import { useMindSpaceAuth, login, MOCK_CREDENTIALS } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/login")({
@@ -155,8 +154,6 @@ function LoginPage() {
   const { theme, toggleTheme } = useTheme();
 
   const { isLoaded: authLoaded, isSignedIn } = useMindSpaceAuth();
-  const { isLoaded: clerkLoaded, signIn, setActive: setSignInActive } = useSignIn();
-  const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
 
   useEffect(() => {
     if (authLoaded && isSignedIn) {
@@ -173,34 +170,15 @@ function LoginPage() {
 
   const handleGoogleAuth = async () => {
     setError("");
-    if (authMode === "signin") {
-      if (!clerkLoaded || !signIn) {
-        setError("Sign-in system is loading. Please try again.");
-        return;
-      }
-      try {
-        await signIn.authenticateWithRedirect({
-          strategy: "oauth_google",
-          redirectUrl: window.location.origin + "/login",
-          redirectUrlComplete: "/dashboard",
-        });
-      } catch (err: any) {
-        setError(err.errors?.[0]?.message || "Google sign-in failed.");
-      }
+    setLoading(true);
+    // Mimic OAuth redirect flow
+    await new Promise((r) => setTimeout(r, 600));
+    const result = login("google.user@mindspace.app", "googleauth123", "Google User");
+    setLoading(false);
+    if (result.ok) {
+      navigate({ to: "/dashboard", replace: true });
     } else {
-      if (!signUpLoaded || !signUp) {
-        setError("Sign-up system is loading. Please try again.");
-        return;
-      }
-      try {
-        await signUp.authenticateWithRedirect({
-          strategy: "oauth_google",
-          redirectUrl: window.location.origin + "/login",
-          redirectUrlComplete: "/dashboard",
-        });
-      } catch (err: any) {
-        setError(err.errors?.[0]?.message || "Google sign-up failed.");
-      }
+      setError("Google authentication failed.");
     }
   };
 
@@ -209,89 +187,48 @@ function LoginPage() {
     setLoading(true);
     setError("");
 
-    // 1. Check if it's the local mock demo credentials (only in signin mode)
-    if (
-      authMode === "signin" &&
-      email.trim().toLowerCase() === MOCK_CREDENTIALS.email &&
-      password === MOCK_CREDENTIALS.password
-    ) {
-      await new Promise((r) => setTimeout(r, 600));
+    // Simulate network delay for premium feel
+    await new Promise((r) => setTimeout(r, 800));
+
+    if (authMode === "signin") {
       const result = login(email, password);
       setLoading(false);
       if (result.ok) {
         navigate({ to: "/dashboard", replace: true });
       } else {
-        setError(result.error ?? "Demo login failed.");
+        setError(result.error ?? "Invalid credentials. Try demo@mindspace.app / mindspace2024");
       }
-      return;
-    }
-
-    // 2. Otherwise process via Clerk
-    if (!clerkLoaded || !signUpLoaded) {
-      setError("Authentication system is loading, please try again.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      if (authMode === "signin") {
-        if (!signIn) {
-          setError("Sign-in function not available.");
-          setLoading(false);
-          return;
-        }
-        const result = await signIn.create({
-          identifier: email,
-          password: password,
-        });
-
-        if (result.status === "complete") {
-          await setSignInActive({ session: result.createdSessionId });
-          navigate({ to: "/dashboard", replace: true });
-        } else {
-          setError("Sign-in verification required. Please check your Clerk dashboard.");
-        }
-      } else {
-        if (!signUp) {
-          setError("Sign-up function not available.");
-          setLoading(false);
-          return;
-        }
-        // Sign up flow
-        await signUp.create({
-          emailAddress: email,
-          password: password,
-        });
-        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-        setVerifying(true);
+    } else {
+      // Sign up flow
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters.");
+        setLoading(false);
+        return;
       }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Authentication failed. Please check your inputs.");
-    } finally {
       setLoading(false);
+      setVerifying(true);
     }
   };
 
   const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!signUpLoaded || !signUp) return;
     setLoading(true);
     setError("");
 
-    try {
-      const completeSignUp = await signUp.attemptEmailAddressVerification({
-        code: verificationCode,
-      });
-      if (completeSignUp.status === "complete") {
-        await setSignUpActive({ session: completeSignUp.createdSessionId });
+    await new Promise((r) => setTimeout(r, 800));
+    
+    // Accept any code for mock verification
+    if (verificationCode.length === 6) {
+      const result = login(email, password);
+      setLoading(false);
+      if (result.ok) {
         navigate({ to: "/dashboard", replace: true });
       } else {
-        setError("Sign-up is not complete. Status: " + completeSignUp.status);
+        setError(result.error ?? "Verification failed.");
       }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Invalid verification code.");
-    } finally {
+    } else {
       setLoading(false);
+      setError("Please enter a valid 6-digit verification code.");
     }
   };
 

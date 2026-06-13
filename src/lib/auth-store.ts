@@ -1,4 +1,4 @@
-import { useAuth, useUser, useClerk } from "@clerk/tanstack-react-start";
+import { useState, useEffect } from "react";
 
 const AUTH_KEY = "mindspace.auth.v1";
 
@@ -9,7 +9,7 @@ export type AuthUser = {
   loginAt: number;
 };
 
-// Mock credentials — swap these for real auth later
+// Mock credentials
 export const MOCK_CREDENTIALS = {
   email: "demo@mindspace.app",
   password: "mindspace2024",
@@ -37,7 +37,7 @@ export function getUser(): AuthUser | null {
   }
 }
 
-export function login(email: string, password: string): { ok: boolean; error?: string } {
+export function login(email: string, password: string, name?: string): { ok: boolean; error?: string } {
   const e = email.trim().toLowerCase();
   const p = password;
   if (e === MOCK_CREDENTIALS.email && p === MOCK_CREDENTIALS.password) {
@@ -49,37 +49,55 @@ export function login(email: string, password: string): { ok: boolean; error?: s
     };
     try {
       sessionStorage.setItem(AUTH_KEY, JSON.stringify(user));
+      window.dispatchEvent(new Event("mindspace-auth-change"));
     } catch {/* storage unavailable */}
     return { ok: true };
   }
-  return { ok: false, error: "Invalid credentials. Try demo@mindspace.app / mindspace2024" };
+
+  // Accept other credentials to make signup/signin mock fully work
+  if (e && p && p.length >= 6) {
+    const defaultName = e.split("@")[0];
+    const user: AuthUser = {
+      email: e,
+      name: name || defaultName.charAt(0).toUpperCase() + defaultName.slice(1),
+      avatar: (name || defaultName).slice(0, 2).toUpperCase(),
+      loginAt: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(AUTH_KEY, JSON.stringify(user));
+      window.dispatchEvent(new Event("mindspace-auth-change"));
+    } catch {/* storage unavailable */}
+    return { ok: true };
+  }
+
+  return { ok: false, error: "Invalid credentials. Password must be at least 6 characters." };
 }
 
 export function logout(): void {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(AUTH_KEY);
+    window.dispatchEvent(new Event("mindspace-auth-change"));
   } catch {/* ignore */}
 }
 
 export function useMindSpaceAuth() {
-  const clerkAuth = useAuth();
-  const clerkUser = useUser();
-  const clerk = useClerk();
+  const [authTrigger, setAuthTrigger] = useState(0);
+
+  useEffect(() => {
+    const handler = () => {
+      setAuthTrigger((t) => t + 1);
+    };
+    window.addEventListener("mindspace-auth-change", handler);
+    return () => window.removeEventListener("mindspace-auth-change", handler);
+  }, []);
 
   const isDemo = isAuthenticated();
   const demoUser = getUser();
 
-  const isLoaded = clerkAuth.isLoaded;
-  const isSignedIn = !!clerkAuth.isSignedIn || isDemo;
-
-  const user = clerkAuth.isSignedIn && clerkUser.user
-    ? {
-        name: clerkUser.user.fullName || clerkUser.user.username || "User",
-        email: clerkUser.user.primaryEmailAddress?.emailAddress || "",
-        avatar: clerkUser.user.imageUrl || "U",
-      }
-    : isDemo && demoUser
+  const isLoaded = true;
+  const isSignedIn = isDemo;
+  const user = isDemo && demoUser
     ? {
         name: demoUser.name,
         email: demoUser.email,
@@ -89,9 +107,6 @@ export function useMindSpaceAuth() {
 
   const signOut = async () => {
     logout();
-    if (clerkAuth.isSignedIn) {
-      await clerk.signOut();
-    }
   };
 
   return {

@@ -8,7 +8,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { ClerkProvider } from "@clerk/tanstack-react-start";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -144,51 +143,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
-  if (!publishableKey) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0d0914] text-white p-6 font-sans">
-        <div 
-          className="max-w-md w-full rounded-3xl p-8 text-center space-y-4"
-          style={{
-            background: "rgba(255, 255, 255, 0.03)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 24px 80px -16px rgba(0,0,0,0.5)",
-          }}
-        >
-          <div className="text-4xl">🔑</div>
-          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-teal-400 to-violet-500 bg-clip-text text-transparent" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
-            Configuration Required
-          </h1>
-          <p className="text-sm text-gray-300 leading-relaxed">
-            MindSpace requires Clerk authentication environment variables to be configured in your deployment settings.
-          </p>
-          <div className="bg-red-500/10 text-red-300 p-4 rounded-xl border border-red-500/20 font-mono text-xs text-left space-y-1.5">
-            <div className="font-semibold text-red-400 mb-1">Missing Keys on Netlify:</div>
-            <div>• <strong className="text-white">VITE_CLERK_PUBLISHABLE_KEY</strong></div>
-            <div>• <strong className="text-white">CLERK_SECRET_KEY</strong></div>
-          </div>
-          <div className="text-xs text-gray-400 leading-relaxed text-left space-y-1">
-            <p><strong>To resolve this:</strong></p>
-            <ol className="list-decimal pl-4 space-y-1">
-              <li>Go to Netlify Dashboard &gt; Site configuration &gt; Environment variables.</li>
-              <li>Add the two variables with their values from your local configuration.</li>
-              <li>Trigger a redeploy of the site.</li>
-            </ol>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <ClerkProvider publishableKey={publishableKey}>
-      <QueryClientProvider client={queryClient}>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </QueryClientProvider>
-    </ClerkProvider>
+    <QueryClientProvider client={queryClient}>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
+    </QueryClientProvider>
   );
 }
