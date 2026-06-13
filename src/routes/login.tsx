@@ -138,6 +138,8 @@ const SECURITY_BADGES = [
   { icon: "⚡", label: "Always Available", sub: "AI companion online 24/7 even when stressed" },
 ];
 
+import { useTheme } from "../lib/theme-store";
+
 function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -146,6 +148,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (isAuthenticated()) navigate({ to: "/dashboard", replace: true });
@@ -161,7 +164,6 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    // Simulate network latency for realism
     await new Promise((r) => setTimeout(r, 800));
     const result = login(email, password);
     setLoading(false);
@@ -174,33 +176,37 @@ function LoginPage() {
 
   return (
     <div
-      className="min-h-dvh w-full flex overflow-hidden"
+      className="min-h-dvh w-full flex overflow-hidden relative"
       style={{
-        background: "linear-gradient(135deg, #0D0D1A 0%, #1A0A2E 50%, #0D1A2E 100%)",
+        background: "var(--gradient-bg)",
       }}
     >
+      {/* Floating Theme Toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label="Toggle theme"
+        className="absolute top-4 right-4 z-50 p-2.5 rounded-xl glass hover:bg-white/10 dark:hover:bg-white/5 transition-all cursor-pointer"
+        style={{ color: "var(--text-primary)" }}
+      >
+        {theme === "dark" ? "☀️" : "🌙"}
+      </button>
+
       {/* ── Left panel ── */}
       <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden">
         <NeuralCanvas />
 
         {/* Top logo */}
         <div className="relative z-10">
-          <div className="font-mono text-xs tracking-[0.3em] uppercase" style={{ color: "#00D4AA" }}>
+          <div className="font-mono text-xs tracking-[0.3em] uppercase" style={{ color: "var(--teal-color)" }}>
             // MINDSPACE_v1.0
           </div>
           <h1 className="mt-3 font-display text-5xl font-bold leading-tight">
-            <span
-              style={{
-                background: "linear-gradient(90deg, #7B2FBE, #00D4AA)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                color: "transparent",
-              }}
-            >
+            <span className="gradient-text">
               MINDSPACE
             </span>
           </h1>
-          <p className="mt-3 text-base leading-relaxed" style={{ color: "#A8B2C8", maxWidth: 400 }}>
+          <p className="mt-3 text-base leading-relaxed" style={{ color: "var(--soft-color)", maxWidth: 400 }}>
             The AI-powered mental wellness companion built exclusively for students conquering
             India's toughest competitive exams.
           </p>
@@ -210,7 +216,7 @@ function LoginPage() {
         <div className="relative z-10 text-center">
           <div
             className="font-display text-3xl font-semibold"
-            style={{ color: "#E6E9F2", minHeight: 80 }}
+            style={{ color: "var(--text-primary)", minHeight: 80 }}
           >
             <Typewriter
               texts={[
@@ -229,17 +235,13 @@ function LoginPage() {
           {SECURITY_BADGES.map((b) => (
             <div
               key={b.label}
-              className="rounded-xl p-3"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}
+              className="glass rounded-xl p-3"
             >
-              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "#fff" }}>
+              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                 <span>{b.icon}</span>
                 {b.label}
               </div>
-              <div className="mt-1 text-xs leading-relaxed" style={{ color: "#5A6478" }}>
+              <div className="mt-1 text-xs leading-relaxed" style={{ color: "var(--soft-color)" }}>
                 {b.sub}
               </div>
             </div>
@@ -261,26 +263,22 @@ function LoginPage() {
         <div className="relative w-full max-w-md animate-fade-up">
           {/* Mobile logo */}
           <div className="lg:hidden mb-8 text-center">
-            <div className="font-display text-3xl font-bold gradient-text neon-text">🧠 MINDSPACE</div>
-            <p className="mt-1 text-sm" style={{ color: "#A8B2C8" }}>
+            <div className="font-display text-3xl font-bold gradient-text">🧠 MINDSPACE</div>
+            <p className="mt-1 text-sm" style={{ color: "var(--soft-color)" }}>
               Your calm in the chaos of exam prep
             </p>
           </div>
 
           {/* Card */}
           <div
-            className="rounded-3xl p-8"
+            className="glass rounded-3xl p-8"
             style={{
-              background: "rgba(255,255,255,0.05)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 24px 80px -16px rgba(0,0,0,0.6), 0 0 0 1px rgba(123,47,190,0.15)",
+              boxShadow: "0 24px 80px -16px rgba(0,0,0,0.35), 0 0 0 1px rgba(123,47,190,0.1)",
             }}
           >
             <div className="mb-8">
-              <h2 className="font-display text-2xl font-bold text-white">Welcome back</h2>
-              <p className="mt-1 text-sm" style={{ color: "#A8B2C8" }}>
+              <h2 className="font-display text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Welcome back</h2>
+              <p className="mt-1 text-sm" style={{ color: "var(--soft-color)" }}>
                 Sign in to continue your wellness journey
               </p>
             </div>
@@ -291,7 +289,7 @@ function LoginPage() {
                 <label
                   htmlFor="email"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
-                  style={{ color: "#A8B2C8" }}
+                  style={{ color: "var(--soft-color)" }}
                 >
                   Email
                 </label>
@@ -309,17 +307,18 @@ function LoginPage() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(""); }}
                     placeholder="you@example.com"
-                    className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm text-white placeholder:text-white/30 transition-all"
+                    className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm transition-all"
                     style={{
-                      background: "rgba(0,0,0,0.3)",
-                      border: email ? "1px solid rgba(0,212,170,0.5)" : "1px solid rgba(255,255,255,0.12)",
+                      background: "var(--input-bg)",
+                      border: email ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
+                      color: "var(--text-primary)",
                       outline: "none",
                     }}
-                    onFocus={(e) => (e.target.style.border = "1px solid rgba(0,212,170,0.6)")}
+                    onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
                     onBlur={(e) =>
-                      (e.target.style.border = email
-                        ? "1px solid rgba(0,212,170,0.4)"
-                        : "1px solid rgba(255,255,255,0.12)")
+                      (e.target.style.borderColor = email
+                        ? "var(--teal-color)"
+                        : "var(--input-border)")
                     }
                     required
                   />
@@ -331,7 +330,7 @@ function LoginPage() {
                 <label
                   htmlFor="password"
                   className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
-                  style={{ color: "#A8B2C8" }}
+                  style={{ color: "var(--soft-color)" }}
                 >
                   Password
                 </label>
@@ -349,17 +348,18 @@ function LoginPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(""); }}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm text-white placeholder:text-white/30 transition-all"
+                    className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm transition-all"
                     style={{
-                      background: "rgba(0,0,0,0.3)",
-                      border: password ? "1px solid rgba(0,212,170,0.5)" : "1px solid rgba(255,255,255,0.12)",
+                      background: "var(--input-bg)",
+                      border: password ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
+                      color: "var(--text-primary)",
                       outline: "none",
                     }}
-                    onFocus={(e) => (e.target.style.border = "1px solid rgba(0,212,170,0.6)")}
+                    onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
                     onBlur={(e) =>
-                      (e.target.style.border = password
-                        ? "1px solid rgba(0,212,170,0.4)"
-                        : "1px solid rgba(255,255,255,0.12)")
+                      (e.target.style.borderColor = password
+                        ? "var(--teal-color)"
+                        : "var(--input-border)")
                     }
                     required
                   />
@@ -398,9 +398,9 @@ function LoginPage() {
                   setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
                   setTimeout(() => setRipple(null), 600);
                 }}
-                className="relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white text-sm disabled:opacity-60 transition-all"
+                className="relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white text-sm disabled:opacity-60 transition-all cursor-pointer"
                 style={{
-                  background: "linear-gradient(90deg, #7B2FBE, #00D4AA)",
+                  background: "var(--gradient-btn)",
                   boxShadow: loading ? "none" : "0 0 28px rgba(123,47,190,0.5)",
                 }}
               >
@@ -437,27 +437,27 @@ function LoginPage() {
                 border: "1px solid rgba(0,212,170,0.2)",
               }}
             >
-              <div className="text-xs font-semibold mb-2" style={{ color: "#00D4AA" }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: "var(--teal-color)" }}>
                 ✨ Demo credentials
               </div>
-              <div className="text-xs space-y-0.5" style={{ color: "#A8B2C8" }}>
+              <div className="text-xs space-y-0.5" style={{ color: "var(--soft-color)" }}>
                 <div>
                   Email:{" "}
-                  <code className="text-white">{MOCK_CREDENTIALS.email}</code>
+                  <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.email}</code>
                 </div>
                 <div>
                   Password:{" "}
-                  <code className="text-white">{MOCK_CREDENTIALS.password}</code>
+                  <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.password}</code>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={fillDemo}
-                className="mt-2.5 w-full rounded-lg py-1.5 text-xs font-semibold transition-all hover:opacity-90"
+                className="mt-2.5 w-full rounded-lg py-1.5 text-xs font-semibold transition-all hover:opacity-90 cursor-pointer"
                 style={{
                   background: "rgba(0,212,170,0.15)",
                   border: "1px solid rgba(0,212,170,0.4)",
-                  color: "#00D4AA",
+                  color: "var(--teal-color)",
                 }}
               >
                 Fill demo credentials
@@ -465,14 +465,14 @@ function LoginPage() {
             </div>
 
             {/* Privacy footer */}
-            <p className="mt-5 text-center text-[11px] leading-relaxed" style={{ color: "#5A6478" }}>
+            <p className="mt-5 text-center text-[11px] leading-relaxed" style={{ color: "var(--muted-color)" }}>
               🔒 Your journal entries are never stored on our servers.{" "}
               <br />All processing is ephemeral and private to your session.
             </p>
           </div>
 
           {/* External links */}
-          <div className="mt-6 flex justify-center gap-4 text-xs" style={{ color: "#5A6478" }}>
+          <div className="mt-6 flex justify-center gap-4 text-xs" style={{ color: "var(--muted-color)" }}>
             <span>iCall crisis line: 9152987821</span>
             <span>·</span>
             <span>NIMHANS: 080-46110007</span>

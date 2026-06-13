@@ -12,6 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useTheme } from "../lib/theme-store";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -64,9 +65,9 @@ function StatCard({ icon, value, label, sub, color }: {
       style={{ borderLeft: `3px solid ${color}` }}
     >
       <div className="text-2xl">{icon}</div>
-      <div className="font-display text-2xl font-bold text-white mt-1">{value}</div>
+      <div className="font-display text-2xl font-bold mt-1" style={{ color: "var(--text-primary)" }}>{value}</div>
       <div className="text-sm font-semibold" style={{ color }}>{label}</div>
-      <div className="text-xs" style={{ color: "#5A6478" }}>{sub}</div>
+      <div className="text-xs" style={{ color: "var(--muted-color)" }}>{sub}</div>
     </div>
   );
 }
@@ -79,12 +80,12 @@ function CustomTooltip({ active, payload, label }: any) {
     <div
       className="rounded-xl px-3 py-2 text-xs"
       style={{
-        background: "rgba(13,13,26,0.95)",
-        border: "1px solid rgba(0,212,170,0.4)",
-        color: "#fff",
+        background: "var(--glass-strong)",
+        border: "1px solid var(--glass-strong-border)",
+        color: "var(--text-primary)",
       }}
     >
-      <div style={{ color: "#A8B2C8" }}>{label}</div>
+      <div style={{ color: "var(--soft-color)" }}>{label}</div>
       <div className="font-bold" style={{ color: moodColor(v) }}>
         Mood: {v}/10 — {moodLabel(v)}
       </div>
@@ -99,7 +100,7 @@ function SessionCard({ thread, onClick }: { thread: Thread; onClick: () => void 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left glass rounded-2xl p-4 card-hover transition-all group"
+      className="w-full text-left glass rounded-2xl p-4 card-hover transition-all group cursor-pointer animate-fade-up"
       style={{ borderTop: `2px solid ${c}40` }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -107,27 +108,22 @@ function SessionCard({ thread, onClick }: { thread: Thread; onClick: () => void 
           <div className="flex items-center gap-2 mb-1">
             {thread.examType && (
               <span
-                className="rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-                style={{
-                  background: "rgba(123,47,190,0.2)",
-                  border: "1px solid rgba(123,47,190,0.4)",
-                  color: "#C9A6FF",
-                }}
+                className="rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-violet/15 border border-violet/30 text-violet"
               >
                 {thread.examType}
               </span>
             )}
-            <span className="text-[10px]" style={{ color: "#5A6478" }}>
+            <span className="text-[10px]" style={{ color: "var(--muted-color)" }}>
               {fmtDate(thread.updatedAt)}
             </span>
           </div>
-          <div className="text-sm font-semibold text-white truncate group-hover:text-teal-300 transition-colors">
+          <div className="text-sm font-semibold truncate group-hover:text-teal transition-colors" style={{ color: "var(--text-primary)" }}>
             {thread.title || "New session"}
           </div>
           {lastMsg && (
             <div
               className="mt-1 text-xs line-clamp-2 leading-relaxed"
-              style={{ color: "#5A6478" }}
+              style={{ color: "var(--muted-color)" }}
             >
               {lastMsg.text.slice(0, 100)}
             </div>
@@ -145,7 +141,7 @@ function SessionCard({ thread, onClick }: { thread: Thread; onClick: () => void 
           </div>
         </div>
       </div>
-      <div className="mt-2 flex items-center gap-2 text-[10px]" style={{ color: "#5A6478" }}>
+      <div className="mt-2 flex items-center gap-2 text-[10px]" style={{ color: "var(--muted-color)" }}>
         <span>💬 {thread.messages.length} messages</span>
       </div>
     </button>
@@ -165,6 +161,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const [threads, setThreads] = useState<Thread[]>([]);
   const user = getUser();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -223,18 +220,27 @@ function DashboardPage() {
         {/* ── Top nav ── */}
         <nav className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <span className="font-display text-xl font-bold gradient-text neon-text">🧠 MINDSPACE</span>
+            <span className="font-display text-xl font-bold gradient-text">🧠 MINDSPACE</span>
             <span
-              className="hidden sm:inline rounded-md px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider"
-              style={{ background: "rgba(0,212,170,0.1)", border: "1px solid rgba(0,212,170,0.3)", color: "#00D4AA" }}
+              className="hidden sm:inline rounded-md px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider bg-teal/10 border border-teal/30 text-teal"
             >
               Dashboard
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="p-2.5 rounded-xl glass hover:bg-white/10 dark:hover:bg-white/5 transition-all cursor-pointer"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+
             <div
               className="hidden sm:flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+              style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)" }}
             >
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
@@ -242,11 +248,11 @@ function DashboardPage() {
               >
                 {user?.avatar ?? "A"}
               </div>
-              <span style={{ color: "#A8B2C8" }}>{user?.name ?? "User"}</span>
+              <span style={{ color: "var(--soft-color)" }}>{user?.name ?? "User"}</span>
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80"
+              className="rounded-xl px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-80 cursor-pointer"
               style={{ background: "rgba(255,77,109,0.12)", border: "1px solid rgba(255,77,109,0.3)", color: "#FF8597" }}
             >
               Sign out
@@ -258,30 +264,30 @@ function DashboardPage() {
         <div
           className="rounded-3xl p-7 mb-6 relative overflow-hidden animate-fade-up"
           style={{
-            background: "linear-gradient(135deg, rgba(123,47,190,0.25) 0%, rgba(0,212,170,0.1) 100%)",
-            border: "1px solid rgba(123,47,190,0.3)",
+            background: "linear-gradient(135deg, rgba(123,47,190,0.18) 0%, rgba(0,212,170,0.07) 100%)",
+            border: "1px solid var(--glass-strong-border)",
           }}
         >
           {/* Decorative orbs */}
           <div
             className="absolute -top-10 -right-10 w-48 h-48 rounded-full pointer-events-none"
-            style={{ background: "radial-gradient(circle, rgba(0,212,170,0.15) 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, rgba(0,212,170,0.12) 0%, transparent 70%)" }}
           />
           <div
             className="absolute -bottom-8 left-10 w-32 h-32 rounded-full pointer-events-none"
-            style={{ background: "radial-gradient(circle, rgba(123,47,190,0.2) 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(circle, rgba(123,47,190,0.15) 0%, transparent 70%)" }}
           />
 
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <div className="text-xs uppercase tracking-[0.2em] font-mono" style={{ color: "#00D4AA" }}>
+              <div className="text-xs uppercase tracking-[0.2em] font-mono text-teal">
                 {today}
               </div>
-              <h1 className="mt-2 font-display text-2xl sm:text-3xl font-bold text-white">
+              <h1 className="mt-2 font-display text-2xl sm:text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
                 {greeting()},{" "}
                 <span className="gradient-text">{user?.name ?? "there"}</span> 👋
               </h1>
-              <p className="mt-2 text-sm" style={{ color: "#A8B2C8" }}>
+              <p className="mt-2 text-sm" style={{ color: "var(--soft-color)" }}>
                 {stats.sessions === 0
                   ? "Start your first session and let MindSpace guide you."
                   : `You've had ${stats.sessions} session${stats.sessions > 1 ? "s" : ""}. Your journey is progressing.`}
@@ -289,8 +295,8 @@ function DashboardPage() {
             </div>
             <button
               onClick={handleNewSession}
-              className="shrink-0 relative overflow-hidden rounded-2xl px-6 py-3.5 font-semibold text-white text-sm gradient-btn transition-all hover:scale-105"
-              style={{ boxShadow: "0 0 32px rgba(123,47,190,0.5)" }}
+              className="shrink-0 relative overflow-hidden rounded-2xl px-6 py-3.5 font-semibold text-white text-sm gradient-btn transition-all hover:scale-105 cursor-pointer"
+              style={{ boxShadow: "0 0 32px rgba(123,47,190,0.4)" }}
             >
               <span className="relative z-10">+ New Session</span>
             </button>
@@ -336,14 +342,13 @@ function DashboardPage() {
           <div className="lg:col-span-2 glass rounded-3xl p-6 animate-fade-up" style={{ animationDelay: "100ms" }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-display text-base font-semibold text-white">Mood Journey</h2>
-                <p className="text-xs mt-0.5" style={{ color: "#5A6478" }}>
+                <h2 className="font-display text-base font-semibold text-primary" style={{ color: "var(--text-primary)" }}>Mood Journey</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted-color)" }}>
                   Last {chartData.length} sessions with mood data
                 </p>
               </div>
               <div
-                className="rounded-lg px-2 py-1 font-mono text-[10px] uppercase"
-                style={{ background: "rgba(0,212,170,0.1)", color: "#00D4AA", border: "1px solid rgba(0,212,170,0.2)" }}
+                className="rounded-lg px-2 py-1 font-mono text-[10px] uppercase bg-teal/10 text-teal border border-teal/20"
               >
                 Live
               </div>
@@ -354,19 +359,19 @@ function DashboardPage() {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
                   <defs>
                     <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#00D4AA" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#7B2FBE" stopOpacity={0.05} />
+                      <stop offset="0%" stopColor="var(--teal-color)" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="var(--violet-color)" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="name"
-                    tick={{ fill: "#5A6478", fontSize: 10 }}
+                    tick={{ fill: "var(--muted-color)", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     domain={[0, 10]}
-                    tick={{ fill: "#5A6478", fontSize: 10 }}
+                    tick={{ fill: "var(--muted-color)", fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -374,33 +379,33 @@ function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="mood"
-                    stroke="#00D4AA"
+                    stroke="var(--teal-color)"
                     strokeWidth={2.5}
                     fill="url(#moodGrad)"
-                    dot={{ fill: "#00D4AA", strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: "#00D4AA", stroke: "#0D0D1A", strokeWidth: 2 }}
+                    dot={{ fill: "var(--teal-color)", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: "var(--teal-color)", stroke: "var(--bg-1)", strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-[200px] flex flex-col items-center justify-center">
                 <div className="text-4xl mb-3">📈</div>
-                <div className="text-sm" style={{ color: "#5A6478" }}>
+                <div className="text-sm" style={{ color: "var(--muted-color)" }}>
                   Start sessions to see your mood trend
                 </div>
               </div>
             )}
 
             {/* Mood scale legend */}
-            <div className="mt-3 flex items-center gap-4 text-[10px]" style={{ color: "#5A6478" }}>
+            <div className="mt-3 flex items-center gap-4 text-[10px]" style={{ color: "var(--muted-color)" }}>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#FF4D6D" }} /> 1–3 High stress
+                <span className="w-2 h-2 rounded-full" style={{ background: "var(--coral-color)" }} /> 1–3 High stress
               </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ background: "#F5C451" }} /> 4–6 Moderate
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#00D4AA" }} /> 7–10 Thriving
+                <span className="w-2 h-2 rounded-full" style={{ background: "var(--teal-color)" }} /> 7–10 Thriving
               </span>
             </div>
           </div>
@@ -413,20 +418,19 @@ function DashboardPage() {
               className="glass rounded-3xl p-5 animate-fade-up"
               style={{
                 animationDelay: "150ms",
-                borderTop: "2px solid rgba(0,212,170,0.3)",
+                borderTop: "2px solid var(--glass-strong-border)",
               }}
             >
-              <div className="text-xs uppercase tracking-wider font-semibold mb-3" style={{ color: "#00D4AA" }}>
+              <div className="text-xs uppercase tracking-wider font-semibold mb-3 text-teal">
                 💡 Today's insight
               </div>
               <div className="text-2xl mb-2">{todayInsight.icon}</div>
-              <div className="font-display text-sm font-bold text-white">{todayInsight.title}</div>
-              <p className="mt-1 text-xs leading-relaxed" style={{ color: "#A8B2C8" }}>
+              <div className="font-display text-sm font-bold" style={{ color: "var(--text-primary)" }}>{todayInsight.title}</div>
+              <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--soft-color)" }}>
                 {todayInsight.desc}
               </p>
               <span
-                className="mt-3 inline-block rounded-full px-2 py-0.5 text-[10px]"
-                style={{ background: "rgba(0,212,170,0.15)", color: "#00D4AA", border: "1px solid rgba(0,212,170,0.3)" }}
+                className="mt-3 inline-block rounded-full px-2 py-0.5 text-[10px] bg-teal/10 border border-teal/30 text-teal"
               >
                 {todayInsight.tag}
               </span>
@@ -437,7 +441,7 @@ function DashboardPage() {
               className="glass rounded-3xl p-5 animate-fade-up"
               style={{ animationDelay: "200ms" }}
             >
-              <div className="text-xs uppercase tracking-wider font-semibold mb-3" style={{ color: "#7B2FBE" }}>
+              <div className="text-xs uppercase tracking-wider font-semibold mb-3 text-violet">
                 🧠 Wellness index
               </div>
               {stats.avgMood != null ? (
@@ -446,23 +450,23 @@ function DashboardPage() {
                     <span className="font-display text-4xl font-bold" style={{ color: moodColor(stats.avgMood) }}>
                       {Math.round(stats.avgMood * 10)}
                     </span>
-                    <span className="text-sm mb-1" style={{ color: "#5A6478" }}>/100</span>
+                    <span className="text-sm mb-1" style={{ color: "var(--muted-color)" }}>/100</span>
                   </div>
-                  <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: "rgba(255,255,255,0.08)" }}>
+                  <div className="w-full rounded-full overflow-hidden" style={{ height: 6, background: "var(--glass-strong-border)" }}>
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
                         width: `${stats.avgMood * 10}%`,
-                        background: `linear-gradient(90deg, ${moodColor(stats.avgMood)}, #7B2FBE)`,
+                        background: `linear-gradient(90deg, ${moodColor(stats.avgMood)}, var(--violet-color))`,
                       }}
                     />
                   </div>
-                  <p className="mt-2 text-xs" style={{ color: "#5A6478" }}>
+                  <p className="mt-2 text-xs" style={{ color: "var(--muted-color)" }}>
                     Based on {stats.sessions} session{stats.sessions !== 1 ? "s" : ""} average mood
                   </p>
                 </>
               ) : (
-                <div className="text-xs" style={{ color: "#5A6478" }}>
+                <div className="text-xs" style={{ color: "var(--muted-color)" }}>
                   Complete a session to see your wellness index.
                 </div>
               )}
@@ -471,17 +475,17 @@ function DashboardPage() {
             {/* Quick nav to chat */}
             <button
               onClick={handleNewSession}
-              className="glass rounded-3xl p-5 text-left card-hover transition-all group animate-fade-up"
+              className="glass rounded-3xl p-5 text-left card-hover transition-all group animate-fade-up cursor-pointer"
               style={{
                 animationDelay: "250ms",
-                borderBottom: "2px solid rgba(123,47,190,0.4)",
+                borderBottom: "2px solid var(--glass-strong-border)",
               }}
             >
               <div className="text-2xl mb-2">🚀</div>
-              <div className="font-display text-sm font-bold text-white group-hover:gradient-text transition-all">
+              <div className="font-display text-sm font-bold group-hover:text-teal transition-all" style={{ color: "var(--text-primary)" }}>
                 Start a new session
               </div>
-              <p className="mt-1 text-xs" style={{ color: "#5A6478" }}>
+              <p className="mt-1 text-xs" style={{ color: "var(--muted-color)" }}>
                 Talk to MindSpace → your AI companion is ready
               </p>
             </button>
@@ -492,12 +496,11 @@ function DashboardPage() {
         {threads.length > 0 && (
           <div className="mt-4 animate-fade-up" style={{ animationDelay: "200ms" }}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-display text-base font-semibold text-white">Recent Sessions</h2>
+              <h2 className="font-display text-base font-semibold text-primary" style={{ color: "var(--text-primary)" }}>Recent Sessions</h2>
               <Link
                 to="/chat/$threadId"
                 params={{ threadId: threads[0]?.id ?? "" }}
-                className="text-xs transition-opacity hover:opacity-80"
-                style={{ color: "#00D4AA" }}
+                className="text-xs transition-opacity hover:opacity-80 text-teal"
               >
                 Continue last →
               </Link>
@@ -523,17 +526,17 @@ function DashboardPage() {
             style={{ animationDelay: "200ms" }}
           >
             <div className="text-5xl mb-4">🌱</div>
-            <h3 className="font-display text-xl font-bold text-white mb-2">
+            <h3 className="font-display text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               Your journey starts here
             </h3>
-            <p className="text-sm max-w-md mx-auto" style={{ color: "#A8B2C8" }}>
+            <p className="text-sm max-w-md mx-auto" style={{ color: "var(--soft-color)" }}>
               MindSpace learns from your conversations. Start your first session — tell it how you're
               feeling, and it'll be there for you, every step of your exam prep.
             </p>
             <button
               onClick={handleNewSession}
-              className="mt-6 rounded-2xl px-8 py-3.5 font-semibold text-white text-sm gradient-btn transition-all hover:scale-105"
-              style={{ boxShadow: "0 0 28px rgba(123,47,190,0.5)" }}
+              className="mt-6 rounded-2xl px-8 py-3.5 font-semibold text-white text-sm gradient-btn transition-all hover:scale-105 cursor-pointer"
+              style={{ boxShadow: "0 0 28px rgba(123,47,190,0.4)" }}
             >
               Begin your first session →
             </button>
@@ -541,7 +544,7 @@ function DashboardPage() {
         )}
 
         {/* ── Footer ── */}
-        <div className="mt-8 text-center text-[11px]" style={{ color: "#5A6478" }}>
+        <div className="mt-8 text-center text-[11px]" style={{ color: "var(--muted-color)" }}>
           Crisis support: iCall 9152987821 · NIMHANS 080-46110007 · MindSpace is not a substitute for professional care.
         </div>
       </div>

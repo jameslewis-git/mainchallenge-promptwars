@@ -7,14 +7,70 @@
   --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --color-bg-1: #0d0d1a;
-  --color-bg-2: #1a0a2e;
-  --color-bg-3: #0d1a2e;
-  --color-violet: #7b2fbe;
-  --color-teal: #00d4aa;
-  --color-coral: #ff4d6d;
-  --color-soft: #a8b2c8;
-  --color-muted2: #5a6478;
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-violet: var(--violet-color);
+  --color-teal: var(--teal-color);
+  --color-coral: var(--coral-color);
+  --color-soft: var(--soft-color);
+  --color-muted2: var(--muted-color);
+}
+
+:root {
+  /* Dark Theme (Default) */
+  --bg-1: #0d0d1a;
+  --bg-2: #1a0a2e;
+  --bg-3: #0d1a2e;
+  --violet-color: #7b2fbe;
+  --teal-color: #00d4aa;
+  --coral-color: #ff4d6d;
+  --soft-color: #a8b2c8;
+  --muted-color: #5a6478;
+  --text-primary: #ffffff;
+  
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-strong: rgba(13, 13, 26, 0.75);
+  --glass-strong-border: rgba(255, 255, 255, 0.08);
+  
+  --gradient-bg: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0d1a2e 100%);
+  --gradient-text: linear-gradient(90deg, #7b2fbe, #00d4aa);
+  --gradient-btn: linear-gradient(90deg, #7b2fbe, #00d4aa);
+  
+  --input-bg: rgba(0, 0, 0, 0.35);
+  --input-border: rgba(255, 255, 255, 0.12);
+  
+  --hud-line-opacity: 0.07;
+  --hud-dot-opacity: 0.05;
+}
+
+html.light, [data-theme="light"] {
+  /* Light Theme */
+  --bg-1: #f3f4f6; /* gray-100 */
+  --bg-2: #e5e7eb; /* gray-200 */
+  --bg-3: #ffffff; 
+  --violet-color: #8b5cf6;
+  --teal-color: #0d9488;
+  --coral-color: #e11d48;
+  --soft-color: #4b5563; /* gray-600 */
+  --muted-color: #6b7280; /* gray-500 */
+  --text-primary: #111827; /* gray-900 */
+  
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.95);
+  --glass-strong-border: rgba(0, 0, 0, 0.06);
+  
+  --gradient-bg: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 50%, #f9fafb 100%);
+  --gradient-text: linear-gradient(90deg, #6d28d9, #0f766e);
+  --gradient-btn: linear-gradient(90deg, #7c3aed, #0d9488);
+  
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --input-border: rgba(0, 0, 0, 0.12);
+  
+  --hud-line-opacity: 0.03;
+  --hud-dot-opacity: 0.02;
 }
 
 @keyframes bgShift {
@@ -24,19 +80,20 @@
 
 @layer base {
   html, body {
-    background: linear-gradient(135deg, #0d0d1a 0%, #1a0a2e 50%, #0d1a2e 100%);
+    background: var(--gradient-bg);
     background-size: 200% 200%;
     animation: bgShift 8s ease-in-out infinite;
     background-attachment: fixed;
-    color: #ffffff;
+    color: var(--text-primary);
     font-family: "Inter", system-ui, sans-serif;
     min-height: 100vh;
+    transition: background 0.3s ease, color 0.3s ease;
   }
   h1, h2, h3, h4 {
     font-family: "Space Grotesk", "Inter", sans-serif;
   }
   *:focus-visible {
-    outline: 2px solid #00d4aa;
+    outline: 2px solid var(--teal-color);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -47,26 +104,28 @@
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
   .glass-strong {
-    background: rgba(13, 13, 26, 0.7);
+    background: var(--glass-strong);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-strong-border);
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
   .gradient-text {
-    background: linear-gradient(90deg, #7b2fbe, #00d4aa);
+    background: var(--gradient-text);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .gradient-btn {
-    background: linear-gradient(90deg, #7b2fbe, #00d4aa);
+    background: var(--gradient-btn);
   }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
@@ -152,8 +211,8 @@
 
 .hud-grid {
   background-image:
-    linear-gradient(rgba(123, 47, 190, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 170, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(123, 47, 190, var(--hud-line-opacity)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 170, var(--hud-dot-opacity)) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 .hud-corners {
@@ -220,6 +279,70 @@
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(0, 212, 170, 0.4), transparent);
 }
+
+/* ───── Glow Blobs & Premium Cards ───── */
+.glow-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: -10;
+  transition: all 0.5s ease;
+}
+.glow-blob-1 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, var(--violet-color) 0%, transparent 70%);
+  animation: floatBlob1 15s infinite ease-in-out alternate;
+}
+.glow-blob-2 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, var(--teal-color) 0%, transparent 70%);
+  animation: floatBlob2 20s infinite ease-in-out alternate;
+}
+@keyframes floatBlob1 {
+  0% { transform: translate(-20%, -20%) scale(1); }
+  100% { transform: translate(30%, 20%) scale(1.2); }
+}
+@keyframes floatBlob2 {
+  0% { transform: translate(20%, 30%) scale(1.1); }
+  100% { transform: translate(-20%, -10%) scale(0.9); }
+}
+
+.glass-glow-violet {
+  border: 1px solid rgba(123, 47, 190, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(123, 47, 190, 0.08), inset 0 0 12px rgba(123, 47, 190, 0.05);
+}
+.glass-glow-teal {
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 212, 170, 0.08), inset 0 0 12px rgba(0, 212, 170, 0.05);
+}
+.glass-glow-coral {
+  border: 1px solid rgba(255, 77, 109, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(255, 77, 109, 0.08), inset 0 0 12px rgba(255, 77, 109, 0.05);
+}
+
+.hud-vertical-line {
+  position: relative;
+}
+.hud-vertical-line::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--teal-color), var(--violet-color));
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
