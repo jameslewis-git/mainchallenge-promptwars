@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useSignIn } from "@clerk/tanstack-react-start";
+import { useSignIn, useSignUp } from "@clerk/tanstack-react-start";
 import { useMindSpaceAuth, login, MOCK_CREDENTIALS } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/login")({
@@ -143,16 +143,20 @@ import { useTheme } from "../lib/theme-store";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   const { isLoaded: authLoaded, isSignedIn } = useMindSpaceAuth();
-  const { isLoaded: clerkLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded: clerkLoaded, signIn, setActive: setSignInActive } = useSignIn();
+  const { isLoaded: signUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
 
   useEffect(() => {
     if (authLoaded && isSignedIn) {
@@ -161,9 +165,43 @@ function LoginPage() {
   }, [authLoaded, isSignedIn, navigate]);
 
   const fillDemo = () => {
+    setAuthMode("signin");
     setEmail(MOCK_CREDENTIALS.email);
     setPassword(MOCK_CREDENTIALS.password);
     setError("");
+  };
+
+  const handleGoogleAuth = async () => {
+    setError("");
+    if (authMode === "signin") {
+      if (!clerkLoaded || !signIn) {
+        setError("Sign-in system is loading. Please try again.");
+        return;
+      }
+      try {
+        await signIn.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl: window.location.origin + "/login",
+          redirectUrlComplete: "/dashboard",
+        });
+      } catch (err: any) {
+        setError(err.errors?.[0]?.message || "Google sign-in failed.");
+      }
+    } else {
+      if (!signUpLoaded || !signUp) {
+        setError("Sign-up system is loading. Please try again.");
+        return;
+      }
+      try {
+        await signUp.authenticateWithRedirect({
+          strategy: "oauth_google",
+          redirectUrl: window.location.origin + "/login",
+          redirectUrlComplete: "/dashboard",
+        });
+      } catch (err: any) {
+        setError(err.errors?.[0]?.message || "Google sign-up failed.");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -171,8 +209,12 @@ function LoginPage() {
     setLoading(true);
     setError("");
 
-    // 1. Check if it's the local mock demo credentials
-    if (email.trim().toLowerCase() === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
+    // 1. Check if it's the local mock demo credentials (only in signin mode)
+    if (
+      authMode === "signin" &&
+      email.trim().toLowerCase() === MOCK_CREDENTIALS.email &&
+      password === MOCK_CREDENTIALS.password
+    ) {
       await new Promise((r) => setTimeout(r, 600));
       const result = login(email, password);
       setLoading(false);
@@ -185,26 +227,69 @@ function LoginPage() {
     }
 
     // 2. Otherwise process via Clerk
-    if (!clerkLoaded) {
+    if (!clerkLoaded || !signUpLoaded) {
       setError("Authentication system is loading, please try again.");
       setLoading(false);
       return;
     }
 
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password: password,
-      });
+      if (authMode === "signin") {
+        if (!signIn) {
+          setError("Sign-in function not available.");
+          setLoading(false);
+          return;
+        }
+        const result = await signIn.create({
+          identifier: email,
+          password: password,
+        });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        navigate({ to: "/dashboard", replace: true });
+        if (result.status === "complete") {
+          await setSignInActive({ session: result.createdSessionId });
+          navigate({ to: "/dashboard", replace: true });
+        } else {
+          setError("Sign-in verification required. Please check your Clerk dashboard.");
+        }
       } else {
-        setError("Sign-in verification required. Please check your Clerk dashboard.");
+        if (!signUp) {
+          setError("Sign-up function not available.");
+          setLoading(false);
+          return;
+        }
+        // Sign up flow
+        await signUp.create({
+          emailAddress: email,
+          password: password,
+        });
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        setVerifying(true);
       }
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Invalid credentials or sign-in failed.");
+      setError(err.errors?.[0]?.message || "Authentication failed. Please check your inputs.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!signUpLoaded || !signUp) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code: verificationCode,
+      });
+      if (completeSignUp.status === "complete") {
+        await setSignUpActive({ session: completeSignUp.createdSessionId });
+        navigate({ to: "/dashboard", replace: true });
+      } else {
+        setError("Sign-up is not complete. Status: " + completeSignUp.status);
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Invalid verification code.");
     } finally {
       setLoading(false);
     }
@@ -307,201 +392,372 @@ function LoginPage() {
 
           {/* Card */}
           <div
-            className="glass rounded-3xl p-8"
+            className="glass rounded-3xl p-8 animate-fade-in"
             style={{
               boxShadow: "0 24px 80px -16px rgba(0,0,0,0.35), 0 0 0 1px rgba(123,47,190,0.1)",
             }}
           >
-            <div className="mb-8">
-              <h2 className="font-display text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Welcome back</h2>
-              <p className="mt-1 text-sm" style={{ color: "var(--soft-color)" }}>
-                Sign in to continue your wellness journey
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
-              <div className="relative">
-                <label
-                  htmlFor="email"
-                  className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
-                  style={{ color: "var(--soft-color)" }}
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <span
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none"
-                    aria-hidden
-                  >
-                    ✉️
-                  </span>
-                  <input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                    placeholder="you@example.com"
-                    className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm transition-all"
-                    style={{
-                      background: "var(--input-bg)",
-                      border: email ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
-                      color: "var(--text-primary)",
-                      outline: "none",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
-                    onBlur={(e) =>
-                      (e.target.style.borderColor = email
-                        ? "var(--teal-color)"
-                        : "var(--input-border)")
-                    }
-                    required
-                  />
+            {verifying ? (
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="mb-6">
+                  <h2 className="font-display text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    Verify Your Email
+                  </h2>
+                  <p className="mt-1.5 text-sm" style={{ color: "var(--soft-color)", lineHeight: "1.4" }}>
+                    We sent a verification code to <span className="font-mono text-xs font-semibold px-1 py-0.5 rounded bg-white/5 text-teal" style={{ color: "var(--teal-color)" }}>{email}</span>. Please enter it below.
+                  </p>
                 </div>
-              </div>
 
-              {/* Password */}
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
-                  style={{ color: "var(--soft-color)" }}
-                >
-                  Password
-                </label>
+                {/* Verification Code */}
                 <div className="relative">
-                  <span
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none"
-                    aria-hidden
+                  <label
+                    htmlFor="verificationCode"
+                    className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
+                    style={{ color: "var(--soft-color)" }}
                   >
-                    🔑
-                  </span>
-                  <input
-                    id="password"
-                    type={showPass ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                    placeholder="••••••••"
-                    className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm transition-all"
-                    style={{
-                      background: "var(--input-bg)",
-                      border: password ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
-                      color: "var(--text-primary)",
-                      outline: "none",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
-                    onBlur={(e) =>
-                      (e.target.style.borderColor = password
-                        ? "var(--teal-color)"
-                        : "var(--input-border)")
-                    }
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass((s) => !s)}
-                    aria-label={showPass ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-lg p-1 rounded-md transition-opacity hover:opacity-100 opacity-50"
-                  >
-                    {showPass ? "🙈" : "👁️"}
-                  </button>
+                    Verification Code
+                  </label>
+                  <div className="relative">
+                    <span
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none"
+                      aria-hidden
+                    >
+                      🔑
+                    </span>
+                    <input
+                      id="verificationCode"
+                      type="text"
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={(e) => { setVerificationCode(e.target.value); setError(""); }}
+                      placeholder="••••••"
+                      className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm transition-all font-mono font-bold tracking-[0.3em] text-center"
+                      style={{
+                        background: "var(--input-bg)",
+                        border: verificationCode ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
+                        color: "var(--text-primary)",
+                        outline: "none",
+                      }}
+                      onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
+                      onBlur={(e) =>
+                        (e.target.style.borderColor = verificationCode
+                          ? "var(--teal-color)"
+                          : "var(--input-border)")
+                      }
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Error */}
-              {error && (
-                <div
-                  className="rounded-xl px-4 py-2.5 text-xs"
-                  role="alert"
+                {/* Error */}
+                {error && (
+                  <div
+                    className="rounded-xl px-4 py-2.5 text-xs"
+                    role="alert"
+                    style={{
+                      background: "rgba(255,77,109,0.12)",
+                      border: "1px solid rgba(255,77,109,0.4)",
+                      color: "#FFB3C0",
+                    }}
+                  >
+                    ⚠️ {error}
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white text-sm disabled:opacity-60 transition-all cursor-pointer"
                   style={{
-                    background: "rgba(255,77,109,0.12)",
-                    border: "1px solid rgba(255,77,109,0.4)",
-                    color: "#FFB3C0",
+                    background: "var(--gradient-btn)",
+                    boxShadow: loading ? "none" : "0 0 28px rgba(123,47,190,0.5)",
                   }}
                 >
-                  ⚠️ {error}
-                </div>
-              )}
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      Verifying…
+                    </span>
+                  ) : (
+                    "Verify Code →"
+                  )}
+                </button>
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading}
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-                  setTimeout(() => setRipple(null), 600);
-                }}
-                className="relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white text-sm disabled:opacity-60 transition-all cursor-pointer"
-                style={{
-                  background: "var(--gradient-btn)",
-                  boxShadow: loading ? "none" : "0 0 28px rgba(123,47,190,0.5)",
-                }}
-              >
-                {ripple && (
-                  <span
-                    className="absolute rounded-full animate-ping"
-                    style={{
-                      left: ripple.x - 60,
-                      top: ripple.y - 60,
-                      width: 120,
-                      height: 120,
-                      background: "rgba(255,255,255,0.2)",
-                      animationDuration: "0.6s",
-                      animationIterationCount: 1,
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVerifying(false);
+                    setError("");
+                  }}
+                  className="w-full text-center text-xs font-semibold py-2 hover:underline cursor-pointer transition-opacity opacity-80 hover:opacity-100"
+                  style={{ color: "var(--soft-color)" }}
+                >
+                  ← Back to Sign Up
+                </button>
+              </form>
+            ) : (
+              <>
+                {/* Tabs */}
+                <div className="flex border-b border-white/10 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("signin");
+                      setError("");
                     }}
-                  />
-                )}
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    Signing in…
-                  </span>
-                ) : (
-                  "Sign in →"
-                )}
-              </button>
-            </form>
+                    className="flex-1 pb-3 text-sm font-semibold transition-all border-b-2 cursor-pointer text-center"
+                    style={{
+                      color: authMode === "signin" ? "var(--teal-color)" : "var(--soft-color)",
+                      borderColor: authMode === "signin" ? "var(--teal-color)" : "transparent",
+                    }}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode("signup");
+                      setError("");
+                    }}
+                    className="flex-1 pb-3 text-sm font-semibold transition-all border-b-2 cursor-pointer text-center"
+                    style={{
+                      color: authMode === "signup" ? "var(--teal-color)" : "var(--soft-color)",
+                      borderColor: authMode === "signup" ? "var(--teal-color)" : "transparent",
+                    }}
+                  >
+                    Sign Up
+                  </button>
+                </div>
 
-            {/* Demo credentials */}
-            <div
-              className="mt-5 rounded-xl p-4"
-              style={{
-                background: "rgba(0,212,170,0.06)",
-                border: "1px solid rgba(0,212,170,0.2)",
-              }}
-            >
-              <div className="text-xs font-semibold mb-2" style={{ color: "var(--teal-color)" }}>
-                ✨ Demo credentials
-              </div>
-              <div className="text-xs space-y-0.5" style={{ color: "var(--soft-color)" }}>
-                <div>
-                  Email:{" "}
-                  <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.email}</code>
+                <div className="mb-6">
+                  <h2 className="font-display text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    {authMode === "signin" ? "Welcome back" : "Create Account"}
+                  </h2>
+                  <p className="mt-1 text-sm" style={{ color: "var(--soft-color)" }}>
+                    {authMode === "signin"
+                      ? "Sign in to continue your wellness journey"
+                      : "Get started with MindSpace today"}
+                  </p>
                 </div>
-                <div>
-                  Password:{" "}
-                  <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.password}</code>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Email */}
+                  <div className="relative">
+                    <label
+                      htmlFor="email"
+                      className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
+                      style={{ color: "var(--soft-color)" }}
+                    >
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <span
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none"
+                        aria-hidden
+                      >
+                        ✉️
+                      </span>
+                      <input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                        placeholder="you@example.com"
+                        className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm transition-all"
+                        style={{
+                          background: "var(--input-bg)",
+                          border: email ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
+                          color: "var(--text-primary)",
+                          outline: "none",
+                        }}
+                        onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
+                        onBlur={(e) =>
+                          (e.target.style.borderColor = email
+                            ? "var(--teal-color)"
+                            : "var(--input-border)")
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-xs font-semibold mb-1.5 uppercase tracking-wider"
+                      style={{ color: "var(--soft-color)" }}
+                    >
+                      Password
+                    </label>
+                    <div className="relative">
+                      <span
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-base pointer-events-none"
+                        aria-hidden
+                      >
+                        🔑
+                      </span>
+                      <input
+                        id="password"
+                        type={showPass ? "text" : "password"}
+                        autoComplete={authMode === "signin" ? "current-password" : "new-password"}
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                        placeholder="••••••••"
+                        className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm transition-all"
+                        style={{
+                          background: "var(--input-bg)",
+                          border: password ? "1px solid var(--teal-color)" : "1px solid var(--input-border)",
+                          color: "var(--text-primary)",
+                          outline: "none",
+                        }}
+                        onFocus={(e) => (e.target.style.borderColor = "var(--teal-color)")}
+                        onBlur={(e) =>
+                          (e.target.style.borderColor = password
+                            ? "var(--teal-color)"
+                            : "var(--input-border)")
+                        }
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass((s) => !s)}
+                        aria-label={showPass ? "Hide password" : "Show password"}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-lg p-1 rounded-md transition-opacity hover:opacity-100 opacity-50"
+                      >
+                        {showPass ? "🙈" : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error */}
+                  {error && (
+                    <div
+                      className="rounded-xl px-4 py-2.5 text-xs"
+                      role="alert"
+                      style={{
+                        background: "rgba(255,77,109,0.12)",
+                        border: "1px solid rgba(255,77,109,0.4)",
+                        color: "#FFB3C0",
+                      }}
+                    >
+                      ⚠️ {error}
+                    </div>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                      setTimeout(() => setRipple(null), 600);
+                    }}
+                    className="relative w-full overflow-hidden rounded-xl py-3.5 font-semibold text-white text-sm disabled:opacity-60 transition-all cursor-pointer"
+                    style={{
+                      background: "var(--gradient-btn)",
+                      boxShadow: loading ? "none" : "0 0 28px rgba(123,47,190,0.5)",
+                    }}
+                  >
+                    {ripple && (
+                      <span
+                        className="absolute rounded-full animate-ping"
+                        style={{
+                          left: ripple.x - 60,
+                          top: ripple.y - 60,
+                          width: 120,
+                          height: 120,
+                          background: "rgba(255,255,255,0.2)",
+                          animationDuration: "0.6s",
+                          animationIterationCount: 1,
+                        }}
+                      />
+                    )}
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        {authMode === "signin" ? "Signing in…" : "Signing up…"}
+                      </span>
+                    ) : (
+                      <span>{authMode === "signin" ? "Sign In →" : "Sign Up →"}</span>
+                    )}
+                  </button>
+                </form>
+
+                {/* Divider */}
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-white/10"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="glass px-3 py-1 rounded-full text-[10px] font-mono" style={{ color: "var(--soft-color)", background: "var(--input-bg)" }}>
+                      Or connect via
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                onClick={fillDemo}
-                className="mt-2.5 w-full rounded-lg py-1.5 text-xs font-semibold transition-all hover:opacity-90 cursor-pointer"
-                style={{
-                  background: "rgba(0,212,170,0.15)",
-                  border: "1px solid rgba(0,212,170,0.4)",
-                  color: "var(--teal-color)",
-                }}
-              >
-                Fill demo credentials
-              </button>
-            </div>
+
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 font-semibold transition-all cursor-pointer glass hover:bg-white/10 dark:hover:bg-white/5 border border-white/10"
+                  style={{
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <svg className="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+
+                {/* Demo credentials */}
+                {authMode === "signin" && (
+                  <div
+                    className="mt-6 rounded-xl p-4 animate-fade-in"
+                    style={{
+                      background: "rgba(0,212,170,0.06)",
+                      border: "1px solid rgba(0,212,170,0.2)",
+                    }}
+                  >
+                    <div className="text-xs font-semibold mb-2" style={{ color: "var(--teal-color)" }}>
+                      ✨ Demo credentials (Quick Access)
+                    </div>
+                    <div className="text-xs space-y-0.5" style={{ color: "var(--soft-color)" }}>
+                      <div>
+                        Email:{" "}
+                        <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.email}</code>
+                      </div>
+                      <div>
+                        Password:{" "}
+                        <code style={{ color: "var(--text-primary)" }}>{MOCK_CREDENTIALS.password}</code>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fillDemo}
+                      className="mt-2.5 w-full rounded-lg py-1.5 text-xs font-semibold transition-all hover:opacity-90 cursor-pointer"
+                      style={{
+                        background: "rgba(0,212,170,0.15)",
+                        border: "1px solid rgba(0,212,170,0.4)",
+                        color: "var(--teal-color)",
+                      }}
+                    >
+                      Fill demo credentials
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Privacy footer */}
-            <p className="mt-5 text-center text-[11px] leading-relaxed" style={{ color: "var(--muted-color)" }}>
+            <p className="mt-6 text-center text-[11px] leading-relaxed" style={{ color: "var(--muted-color)" }}>
               🔒 Your journal entries are never stored on our servers.{" "}
               <br />All processing is ephemeral and private to your session.
             </p>
