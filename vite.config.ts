@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Force-enable the Nitro deploy plugin with the Netlify adapter.
+  // Without this, the plugin is skipped outside Lovable's sandbox and the
+  // build outputs to dist/ instead of the Netlify-compatible .output/ structure.
+  nitro: { preset: "netlify" },
 });

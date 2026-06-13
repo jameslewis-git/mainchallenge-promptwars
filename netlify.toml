@@ -8,9 +8,11 @@
   publish = ".output/public"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   # Tell Nitro to build for Netlify (uses @netlify/nitro-netlify preset)
   NITRO_PRESET = "netlify"
+  # Prevent Netlify secrets scanner from flagging placeholder values in .env.example
+  SECRETS_SCAN_OMIT_PATHS = ".env.example"
 
 # SPA / SSR fallback — TanStack Start handles its own routing
 [[redirects]]

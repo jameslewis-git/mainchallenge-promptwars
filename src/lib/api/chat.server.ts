@@ -117,7 +117,7 @@ Set stressTriggers to identified triggers when the user describes specific worri
 // ─── Server function ──────────────────────────────────────────────────────────
 
 export const sendChatMessage = createServerFn({ method: "POST" })
-  .inputValidator(ChatInputSchema)
+  .validator(ChatInputSchema)
   .handler(async ({ data }) => {
     // Read secrets inside handler — never at module scope (Nitro/CF compat).
     const OLLAMA_API_URL = process.env.OLLAMA_API_URL;
