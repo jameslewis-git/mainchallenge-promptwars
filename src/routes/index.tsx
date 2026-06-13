@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { isAuthenticated } from "@/lib/auth-store";
+import { useMindSpaceAuth } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,16 +18,20 @@ export const Route = createFileRoute("/")({
 
 function IndexRedirect() {
   const navigate = useNavigate();
+  const { isSignedIn, isLoaded } = useMindSpaceAuth();
+
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (!isLoaded) return;
+    if (isSignedIn) {
       navigate({ to: "/dashboard", replace: true });
     } else {
       navigate({ to: "/login", replace: true });
     }
-  }, [navigate]);
+  }, [isLoaded, isSignedIn, navigate]);
+
   return (
-    <div className="flex min-h-dvh items-center justify-center text-sm" style={{ color: "#A8B2C8" }}>
-      Loading MindSpace…
+    <div className="flex min-h-dvh items-center justify-center text-sm" style={{ color: "var(--soft-color)" }}>
+      Initializing MindSpace Console…
     </div>
   );
 }

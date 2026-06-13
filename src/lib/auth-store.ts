@@ -1,6 +1,4 @@
-// ─── MindSpace Auth Store ──────────────────────────────────────────────────
-// Simple sessionStorage-based auth for the hackathon demo.
-// Replace with Supabase / Clerk when ready for production.
+import { useAuth, useUser, useClerk } from "@clerk/tanstack-react-start";
 
 const AUTH_KEY = "mindspace.auth.v1";
 
@@ -62,4 +60,45 @@ export function logout(): void {
   try {
     sessionStorage.removeItem(AUTH_KEY);
   } catch {/* ignore */}
+}
+
+export function useMindSpaceAuth() {
+  const clerkAuth = useAuth();
+  const clerkUser = useUser();
+  const clerk = useClerk();
+
+  const isDemo = isAuthenticated();
+  const demoUser = getUser();
+
+  const isLoaded = clerkAuth.isLoaded;
+  const isSignedIn = !!clerkAuth.isSignedIn || isDemo;
+
+  const user = clerkAuth.isSignedIn && clerkUser.user
+    ? {
+        name: clerkUser.user.fullName || clerkUser.user.username || "User",
+        email: clerkUser.user.primaryEmailAddress?.emailAddress || "",
+        avatar: clerkUser.user.imageUrl || "U",
+      }
+    : isDemo && demoUser
+    ? {
+        name: demoUser.name,
+        email: demoUser.email,
+        avatar: demoUser.avatar,
+      }
+    : null;
+
+  const signOut = async () => {
+    logout();
+    if (clerkAuth.isSignedIn) {
+      await clerk.signOut();
+    }
+  };
+
+  return {
+    isLoaded,
+    isSignedIn,
+    user,
+    isDemo,
+    signOut,
+  };
 }

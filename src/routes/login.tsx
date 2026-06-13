@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { isAuthenticated, login, MOCK_CREDENTIALS } from "@/lib/auth-store";
+import { useSignIn } from "@clerk/tanstack-react-start";
+import { useMindSpaceAuth, login, MOCK_CREDENTIALS } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -150,9 +151,14 @@ function LoginPage() {
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const { theme, toggleTheme } = useTheme();
 
+  const { isLoaded: authLoaded, isSignedIn } = useMindSpaceAuth();
+  const { isLoaded: clerkLoaded, signIn, setActive } = useSignIn();
+
   useEffect(() => {
-    if (isAuthenticated()) navigate({ to: "/dashboard", replace: true });
-  }, [navigate]);
+    if (authLoaded && isSignedIn) {
+      navigate({ to: "/dashboard", replace: true });
+    }
+  }, [authLoaded, isSignedIn, navigate]);
 
   const fillDemo = () => {
     setEmail(MOCK_CREDENTIALS.email);
@@ -164,13 +170,43 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 800));
-    const result = login(email, password);
-    setLoading(false);
-    if (result.ok) {
-      navigate({ to: "/dashboard", replace: true });
-    } else {
-      setError(result.error ?? "Login failed.");
+
+    // 1. Check if it's the local mock demo credentials
+    if (email.trim().toLowerCase() === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
+      await new Promise((r) => setTimeout(r, 600));
+      const result = login(email, password);
+      setLoading(false);
+      if (result.ok) {
+        navigate({ to: "/dashboard", replace: true });
+      } else {
+        setError(result.error ?? "Demo login failed.");
+      }
+      return;
+    }
+
+    // 2. Otherwise process via Clerk
+    if (!clerkLoaded) {
+      setError("Authentication system is loading, please try again.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await signIn.create({
+        identifier: email,
+        password: password,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+        navigate({ to: "/dashboard", replace: true });
+      } else {
+        setError("Sign-in verification required. Please check your Clerk dashboard.");
+      }
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Invalid credentials or sign-in failed.");
+    } finally {
+      setLoading(false);
     }
   };
 

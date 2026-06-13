@@ -9,7 +9,7 @@ import {
   createThread,
   upsertThread,
 } from "@/lib/mindspace-store";
-import { isAuthenticated, getUser, logout } from "@/lib/auth-store";
+import { useMindSpaceAuth } from "@/lib/auth-store";
 import { useTheme } from "../lib/theme-store";
 
 export const Route = createFileRoute("/chat/$threadId")({
@@ -185,11 +185,13 @@ function ChatPage() {
 function ChatPageInner({ threadId }: { threadId: string }) {
   const navigate = useNavigate();
 
+  const { isLoaded, isSignedIn } = useMindSpaceAuth();
+
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (isLoaded && !isSignedIn) {
       navigate({ to: "/login", replace: true });
     }
-  }, [navigate]);
+  }, [isLoaded, isSignedIn, navigate]);
 
   const conv = useConversation(threadId);
   const { threads, remove } = useThreadList();
@@ -260,7 +262,7 @@ function Sidebar({
   setOpen: (b: boolean) => void;
 }) {
   const navigate = useNavigate();
-  const user = getUser();
+  const { user, signOut } = useMindSpaceAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -368,18 +370,22 @@ function Sidebar({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden"
                 style={{ background: "linear-gradient(135deg,#7B2FBE,#00D4AA)", color: "#fff" }}
               >
-                {user?.avatar ?? "A"}
+                {user?.avatar && user.avatar.startsWith("http") ? (
+                  <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.avatar?.slice(0, 2) ?? "U"
+                )}
               </div>
               <span className="text-xs truncate font-medium" style={{ color: "var(--soft-color)" }}>
                 {user?.name ?? "User"}
               </span>
             </div>
             <button
-              onClick={() => {
-                logout();
+              onClick={async () => {
+                await signOut();
                 navigate({ to: "/login", replace: true });
               }}
               className="rounded-lg px-2 py-1 text-[10px] font-semibold transition-all hover:bg-black/5 dark:hover:bg-white/5 shrink-0 cursor-pointer"
@@ -1280,6 +1286,7 @@ function GroundingModal({ onClose }: { onClose: () => void }) {
 function MessageBubble({ msg, onMoodPick }: { msg: Message; onMoodPick: (v: number) => void }) {
   const [copied, setCopied] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const { user } = useMindSpaceAuth();
 
   useEffect(() => {
     return () => {
@@ -1339,10 +1346,14 @@ function MessageBubble({ msg, onMoodPick }: { msg: Message; onMoodPick: (v: numb
           </div>
         </div>
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 self-start shadow-[0_0_8px_rgba(0,212,170,0.3)]"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 self-start shadow-[0_0_8px_rgba(0,212,170,0.3)] overflow-hidden"
           style={{ background: "linear-gradient(135deg, #00D4AA, #7B2FBE)", color: "#fff" }}
         >
-          {getUser()?.avatar ?? "U"}
+          {user?.avatar && user.avatar.startsWith("http") ? (
+            <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+          ) : (
+            user?.avatar?.slice(0, 2) ?? "U"
+          )}
         </div>
       </div>
     );

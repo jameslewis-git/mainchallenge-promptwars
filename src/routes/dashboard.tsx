@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Particles } from "@/components/mindspace/Particles";
-import { getUser, isAuthenticated, logout } from "@/lib/auth-store";
+import { useMindSpaceAuth } from "@/lib/auth-store";
 import { loadThreads, createThread, upsertThread } from "@/lib/mindspace-store";
 import type { Thread } from "@/lib/mindspace-store";
 import {
@@ -160,16 +160,16 @@ const INSIGHTS = [
 function DashboardPage() {
   const navigate = useNavigate();
   const [threads, setThreads] = useState<Thread[]>([]);
-  const user = getUser();
+  const { isLoaded, isSignedIn, user, signOut } = useMindSpaceAuth();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (isLoaded && !isSignedIn) {
       navigate({ to: "/login", replace: true });
       return;
     }
     setThreads(loadThreads());
-  }, [navigate]);
+  }, [isLoaded, isSignedIn, navigate]);
 
   const stats = useMemo(() => {
     const withMood = threads.filter((t) => t.mood !== null);
@@ -199,8 +199,8 @@ function DashboardPage() {
     navigate({ to: "/chat/$threadId", params: { threadId: t.id } });
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate({ to: "/login", replace: true });
   };
 
@@ -243,10 +243,14 @@ function DashboardPage() {
               style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border)" }}
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold overflow-hidden"
                 style={{ background: "linear-gradient(135deg,#7B2FBE,#00D4AA)", color: "#fff" }}
               >
-                {user?.avatar ?? "A"}
+                {user?.avatar && user.avatar.startsWith("http") ? (
+                  <img src={user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                ) : (
+                  user?.avatar?.slice(0, 2) ?? "U"
+                )}
               </div>
               <span style={{ color: "var(--soft-color)" }}>{user?.name ?? "User"}</span>
             </div>
