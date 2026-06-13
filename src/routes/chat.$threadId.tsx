@@ -6,6 +6,7 @@ import { useConversation, useThreadList } from "@/hooks/useConversation";
 import {
   type AIData,
   type Message,
+  type TimerExercise,
   createThread,
   upsertThread,
 } from "@/lib/mindspace-store";
