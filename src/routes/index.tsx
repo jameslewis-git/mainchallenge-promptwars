@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { createThread, loadThreads, upsertThread } from "@/lib/mindspace-store";
+import { isAuthenticated } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,13 +19,11 @@ export const Route = createFileRoute("/")({
 function IndexRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
-    const existing = loadThreads();
-    const target = existing[0]?.id ?? (() => {
-      const t = createThread();
-      upsertThread(t);
-      return t.id;
-    })();
-    navigate({ to: "/chat/$threadId", params: { threadId: target }, replace: true });
+    if (isAuthenticated()) {
+      navigate({ to: "/dashboard", replace: true });
+    } else {
+      navigate({ to: "/login", replace: true });
+    }
   }, [navigate]);
   return (
     <div className="flex min-h-dvh items-center justify-center text-sm" style={{ color: "#A8B2C8" }}>

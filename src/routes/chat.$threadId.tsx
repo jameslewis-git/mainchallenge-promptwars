@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Particles } from "@/components/mindspace/Particles";
 import { emojiBurst } from "@/lib/emoji-burst";
@@ -9,6 +9,7 @@ import {
   createThread,
   upsertThread,
 } from "@/lib/mindspace-store";
+import { isAuthenticated, getUser, logout } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/chat/$threadId")({
   component: ChatPage,
@@ -56,9 +57,16 @@ function ChatPage() {
 }
 
 function ChatPageInner({ threadId }: { threadId: string }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate({ to: "/login", replace: true });
+    }
+  }, [navigate]);
+
   const conv = useConversation(threadId);
   const { threads, remove } = useThreadList();
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNew = () => {
@@ -125,6 +133,9 @@ function Sidebar({
   open: boolean;
   setOpen: (b: boolean) => void;
 }) {
+  const navigate = useNavigate();
+  const user = getUser();
+
   return (
     <>
       {/* overlay on mobile */}
@@ -141,7 +152,12 @@ function Sidebar({
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <div className="font-display text-lg font-bold gradient-text">🧠 MindSpace</div>
+          <Link
+            to="/dashboard"
+            className="font-display text-lg font-bold gradient-text hover:opacity-85 transition-opacity flex items-center gap-1.5"
+          >
+            <span>🧠</span> MindSpace
+          </Link>
           <button
             onClick={() => setOpen(false)}
             aria-label="Close menu"
@@ -150,14 +166,22 @@ function Sidebar({
             ✕
           </button>
         </div>
+
+        <Link
+          to="/dashboard"
+          className="mb-3 w-full flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-[#A8B2C8] border border-white/10 hover:border-white/20 hover:bg-white/5 hover:text-white transition-all"
+        >
+          📊 Dashboard
+        </Link>
+
         <button
           onClick={onNew}
-          className="mb-4 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg gradient-btn"
+          className="mb-4 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg gradient-btn shrink-0"
           style={{ boxShadow: "0 8px 24px -8px rgba(123,47,190,0.6)" }}
         >
           + New session
         </button>
-        <div className="mb-2 text-xs uppercase tracking-wider" style={{ color: "#5A6478" }}>
+        <div className="mb-2 text-xs uppercase tracking-wider shrink-0" style={{ color: "#5A6478" }}>
           Sessions
         </div>
         <div className="flex-1 space-y-1 overflow-y-auto scrollbar-thin">
@@ -197,7 +221,33 @@ function Sidebar({
             );
           })}
         </div>
-        <div className="mt-4 text-[11px] leading-relaxed" style={{ color: "#5A6478" }}>
+
+        {/* Profile Card and Sign out at bottom */}
+        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+              style={{ background: "linear-gradient(135deg,#7B2FBE,#00D4AA)", color: "#fff" }}
+            >
+              {user?.avatar ?? "A"}
+            </div>
+            <span className="text-xs truncate font-medium text-white/80" style={{ color: "#A8B2C8" }}>
+              {user?.name ?? "User"}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              logout();
+              navigate({ to: "/login", replace: true });
+            }}
+            className="rounded-lg px-2 py-1 text-[10px] font-semibold transition-all hover:bg-white/5 shrink-0"
+            style={{ color: "#FF8597" }}
+          >
+            Sign out
+          </button>
+        </div>
+
+        <div className="mt-2 text-[10px] leading-relaxed shrink-0" style={{ color: "#5A6478" }}>
           Stored only in this browser. Not a substitute for professional help.
         </div>
       </aside>
