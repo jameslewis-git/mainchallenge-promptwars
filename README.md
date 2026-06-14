@@ -3,14 +3,14 @@
 > **Google for Developers I/O · PromptWars · Mental Wellness Tracker Challenge**  
 > An always-available conversational AI companion for students preparing for NEET, JEE, CUET, CAT, GATE, and UPSC.
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-netlify-00D4AA?style=for-the-badge&logo=netlify)](https://your-app.netlify.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-netlify-00D4AA?style=for-the-badge&logo=netlify)](https://mindspace-promptwars.netlify.app/)
 [![GitHub](https://img.shields.io/badge/GitHub-mainchallenge--promptwars-7B2FBE?style=for-the-badge&logo=github)](https://github.com/jameslewis-git/mainchallenge-promptwars)
 
 ---
 
 ## 🚀 Live Demo
 
-**https://your-app.netlify.app**
+**[MINDSPACE - The AI-powered mental wellness companion built exclusively for students conquering India's toughest competitive exams.](https://mindspace-promptwars.netlify.app/)**
 
 ---
 
